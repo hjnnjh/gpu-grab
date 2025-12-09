@@ -1,25 +1,27 @@
 {
   "meta": {
-    "generated_at": "2025-12-09T16:43:26+08:00",
+    "generated_at": "2025-12-09T17:27:32+08:00",
     "generator": "claude-architect-adaptive",
-    "version": "1.0.0",
-    "scan_type": "incremental"
+    "version": "1.1.0",
+    "scan_type": "full"
   },
   "project": {
     "name": "gpu-grab",
     "root": "/home/ubuntu/.gpu-grab",
-    "description": "GPU 资源获取/管理工具 - 用于监控和获取云平台或集群中的 GPU 资源"
+    "description": "GPU Training Task Scheduler - Python CLI 工具，用于智能调度 GPU 训练任务",
+    "language": "Python",
+    "python_version": "3.13"
   },
   "scan_result": {
     "status": "completed",
     "truncated": false,
-    "total_files_estimated": 0,
-    "files_scanned": 0,
+    "total_files_estimated": 11,
+    "files_scanned": 11,
     "coverage_percentage": 100,
     "scan_phases": {
       "phase_a": "completed",
-      "phase_b": "skipped_empty_repo",
-      "phase_c": "skipped_empty_repo"
+      "phase_b": "completed",
+      "phase_c": "skipped_small_repo"
     },
     "ignored_patterns": [
       "node_modules/**",
@@ -29,58 +31,129 @@
       "build/**",
       ".next/**",
       "__pycache__/**",
+      ".venv/**",
       "*.lock",
       "*.log",
       "*.bin",
-      "*.pdf",
-      "*.png",
-      "*.jpg",
-      "*.jpeg",
-      "*.gif",
-      "*.mp4",
-      "*.zip",
-      "*.tar",
-      "*.gz"
+      "*.so"
     ],
     "ignored_stats": {
-      "total_ignored_files": 0,
-      "reasons": []
+      "total_ignored_files": 85,
+      "reasons": [
+        { "pattern": ".git/**", "count": 23 },
+        { "pattern": ".venv/**", "count": 62 }
+      ]
     }
   },
-  "modules": [],
+  "modules": [
+    {
+      "name": "gpu_grab",
+      "path": "gpu_grab",
+      "language": "Python",
+      "entry_points": ["cli.py:main"],
+      "interfaces": {
+        "cli_commands": ["submit", "status", "list", "cancel", "logs"],
+        "socket_actions": ["submit", "status", "list", "cancel", "logs"]
+      },
+      "dependencies": {
+        "external": ["pynvml", "pyyaml"],
+        "internal": []
+      },
+      "tests": null,
+      "data_models": ["Task", "TaskStatus", "GPUStatus", "GPURequirement", "Config"],
+      "key_files": [
+        "gpu_grab/__init__.py",
+        "gpu_grab/config.py",
+        "gpu_grab/models.py",
+        "gpu_grab/gpu_monitor.py",
+        "gpu_grab/queue_manager.py",
+        "gpu_grab/task_runner.py",
+        "gpu_grab/scheduler.py",
+        "gpu_grab/server.py",
+        "gpu_grab/cli.py"
+      ],
+      "claude_md": {
+        "path": "gpu_grab/CLAUDE.md",
+        "status": "created"
+      }
+    }
+  ],
   "file_inventory": {
     "documentation": [
-      "CLAUDE.md"
+      "CLAUDE.md",
+      "gpu_grab/CLAUDE.md"
     ],
-    "configuration": [],
-    "source_code": [],
+    "configuration": [
+      "pyproject.toml",
+      ".python-version"
+    ],
+    "source_code": [
+      "main.py",
+      "gpu_grab/__init__.py",
+      "gpu_grab/config.py",
+      "gpu_grab/models.py",
+      "gpu_grab/gpu_monitor.py",
+      "gpu_grab/queue_manager.py",
+      "gpu_grab/task_runner.py",
+      "gpu_grab/scheduler.py",
+      "gpu_grab/server.py",
+      "gpu_grab/cli.py"
+    ],
     "tests": [],
     "build_scripts": []
   },
-  "language_distribution": {},
+  "language_distribution": {
+    "Python": {
+      "files": 10,
+      "percentage": 100
+    }
+  },
   "gaps": {
-    "missing_modules": true,
-    "missing_entry_points": true,
-    "missing_api_definitions": true,
+    "missing_modules": false,
+    "missing_entry_points": false,
+    "missing_api_definitions": false,
     "missing_tests": true,
-    "missing_data_models": true,
-    "missing_build_config": true,
+    "missing_data_models": false,
+    "missing_build_config": false,
+    "details": [
+      {
+        "type": "missing_tests",
+        "severity": "medium",
+        "description": "无测试目录，建议添加 tests/ 覆盖核心逻辑"
+      },
+      {
+        "type": "missing_cli_command",
+        "severity": "high",
+        "description": "缺少 serve 子命令用于启动调度服务"
+      },
+      {
+        "type": "incomplete_feature",
+        "severity": "low",
+        "description": "logs --follow 功能标记为 TODO"
+      }
+    ],
     "priority_paths_to_scan": []
   },
   "next_steps": [
-    "添加项目源代码（建议选择 Go/Python/Rust 作为主语言）",
-    "创建项目配置文件（如 go.mod / pyproject.toml / Cargo.toml）",
-    "确定核心功能模块（监控、抢占、通知等）",
-    "添加入口文件（main.go / main.py / main.rs）",
-    "重新运行初始化以更新文档"
+    "添加 'gpu-grab serve' 命令启动后台调度服务",
+    "创建 tests/ 目录并添加 pytest 测试",
+    "实现 logs --follow 实时日志跟踪",
+    "添加 systemd 单元文件支持系统服务",
+    "考虑添加 REST API 作为 Socket 的补充"
   ],
   "documents": {
     "root_claude_md": {
       "path": "CLAUDE.md",
       "status": "updated",
-      "last_updated": "2025-12-09T16:43:26+08:00"
+      "last_updated": "2025-12-09T17:27:32+08:00"
     },
-    "module_claude_mds": []
+    "module_claude_mds": [
+      {
+        "path": "gpu_grab/CLAUDE.md",
+        "status": "created",
+        "last_updated": "2025-12-09T17:27:32+08:00"
+      }
+    ]
   },
   "history": [
     {
@@ -92,6 +165,14 @@
       "timestamp": "2025-12-09T16:43:26+08:00",
       "action": "incremental_scan",
       "result": "empty_repo_confirmed"
+    },
+    {
+      "timestamp": "2025-12-09T17:27:32+08:00",
+      "action": "full_scan",
+      "result": "completed",
+      "files_scanned": 11,
+      "modules_identified": 1,
+      "coverage": "100%"
     }
   ]
 }
