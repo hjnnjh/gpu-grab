@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "generated_at": "2025-12-09T16:43:26+08:00",
+    "generator": "claude-architect-adaptive",
+    "version": "1.0.0",
+    "scan_type": "incremental"
+  },
+  "project": {
+    "name": "gpu-grab",
+    "root": "/home/ubuntu/.gpu-grab",
+    "description": "GPU 资源获取/管理工具 - 用于监控和获取云平台或集群中的 GPU 资源"
+  },
+  "scan_result": {
+    "status": "completed",
+    "truncated": false,
+    "total_files_estimated": 0,
+    "files_scanned": 0,
+    "coverage_percentage": 100,
+    "scan_phases": {
+      "phase_a": "completed",
+      "phase_b": "skipped_empty_repo",
+      "phase_c": "skipped_empty_repo"
+    },
+    "ignored_patterns": [
+      "node_modules/**",
+      ".git/**",
+      ".github/**",
+      "dist/**",
+      "build/**",
+      ".next/**",
+      "__pycache__/**",
+      "*.lock",
+      "*.log",
+      "*.bin",
+      "*.pdf",
+      "*.png",
+      "*.jpg",
+      "*.jpeg",
+      "*.gif",
+      "*.mp4",
+      "*.zip",
+      "*.tar",
+      "*.gz"
+    ],
+    "ignored_stats": {
+      "total_ignored_files": 0,
+      "reasons": []
+    }
+  },
+  "modules": [],
+  "file_inventory": {
+    "documentation": [
+      "CLAUDE.md"
+    ],
+    "configuration": [],
+    "source_code": [],
+    "tests": [],
+    "build_scripts": []
+  },
+  "language_distribution": {},
+  "gaps": {
+    "missing_modules": true,
+    "missing_entry_points": true,
+    "missing_api_definitions": true,
+    "missing_tests": true,
+    "missing_data_models": true,
+    "missing_build_config": true,
+    "priority_paths_to_scan": []
+  },
+  "next_steps": [
+    "添加项目源代码（建议选择 Go/Python/Rust 作为主语言）",
+    "创建项目配置文件（如 go.mod / pyproject.toml / Cargo.toml）",
+    "确定核心功能模块（监控、抢占、通知等）",
+    "添加入口文件（main.go / main.py / main.rs）",
+    "重新运行初始化以更新文档"
+  ],
+  "documents": {
+    "root_claude_md": {
+      "path": "CLAUDE.md",
+      "status": "updated",
+      "last_updated": "2025-12-09T16:43:26+08:00"
+    },
+    "module_claude_mds": []
+  },
+  "history": [
+    {
+      "timestamp": "2025-12-09T16:41:01+08:00",
+      "action": "initial_scan",
+      "result": "empty_repo"
+    },
+    {
+      "timestamp": "2025-12-09T16:43:26+08:00",
+      "action": "incremental_scan",
+      "result": "empty_repo_confirmed"
+    }
+  ]
+}
