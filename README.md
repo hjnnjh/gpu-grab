@@ -76,6 +76,21 @@ gpu-grab submit "python train.py" \
   --gpus 0,1
 ```
 
+### 指定 Conda 环境
+
+如果任务依赖特定的 Conda 环境，请使用 `conda run` 运行：
+
+```bash
+# 在 pytorch-test 环境中运行
+gpu-grab submit "conda run -n pytorch-test python train.py"
+```
+
+或者使用 Python 解释器的绝对路径：
+
+```bash
+gpu-grab submit "/path/to/envs/pytorch-test/bin/python train.py"
+```
+
 ### 3. 查看状态
 
 查看 GPU 实时状态和任务队列：
@@ -155,7 +170,7 @@ default_gpu_count: 1
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/gpu-grab.git
+git clone https://github.com/hjnnjh/gpu-grab.git
 cd gpu-grab
 
 # 安装依赖
