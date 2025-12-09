@@ -1,0 +1,16 @@
+[project]
+name = "gpu-grab"
+version = "0.1.0"
+description = "GPU Training Task Scheduler"
+requires-python = ">=3.10"
+dependencies = [
+    "pynvml>=13.0.1",
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+gpu-grab = "gpu_grab.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

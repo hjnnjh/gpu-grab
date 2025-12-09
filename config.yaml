@@ -1,0 +1,15 @@
+# GPU Grab Configuration
+
+# Scheduling
+check_interval: 10.0          # GPU check interval (seconds)
+max_concurrent_tasks: 4       # Max concurrent tasks
+
+# Logging
+log_level: INFO               # DEBUG, INFO, WARNING, ERROR
+log_max_size_mb: 10          # Max size per log file
+log_backup_count: 5          # Number of log backups
+
+# Task Defaults
+default_gpu_count: 1         # Default GPUs per task
+default_min_memory_gb: 0     # Default min free memory
+default_max_util_percent: 100  # Default max GPU utilization allowed
