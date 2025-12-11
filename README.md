@@ -52,7 +52,23 @@ systemctl --user start gpu-grab.service
 systemctl --user status gpu-grab.service
 ```
 
-### 2. 提交任务
+### 2. 配置 PATH（可选）
+
+如果直接运行 `gpu-grab` 命令提示 `command not found`，需要将虚拟环境添加到 PATH：
+
+```bash
+# Zsh 用户
+echo 'export PATH="/home/ubuntu/.gpu-grab/.venv/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Bash 用户
+echo 'export PATH="/home/ubuntu/.gpu-grab/.venv/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+或者使用 `uv run gpu-grab` 代替直接调用。
+
+### 3. 提交任务
 
 提交一个简单的 Python 训练脚本：
 
@@ -60,7 +76,7 @@ systemctl --user status gpu-grab.service
 # 使用 uv 运行
 uv run gpu-grab submit "python train.py"
 
-# 或者如果已安装到环境
+# 或者如果已配置 PATH
 gpu-grab submit "python train.py"
 ```
 
@@ -91,7 +107,7 @@ gpu-grab submit "conda run -n pytorch-test python train.py"
 gpu-grab submit "/path/to/envs/pytorch-test/bin/python train.py"
 ```
 
-### 3. 查看状态
+### 4. 查看状态
 
 查看 GPU 实时状态和任务队列：
 
@@ -115,7 +131,7 @@ gpu-grab status
   Failed:    0
 ```
 
-### 4. 管理任务
+### 5. 管理任务
 
 ```bash
 # 列出所有任务
