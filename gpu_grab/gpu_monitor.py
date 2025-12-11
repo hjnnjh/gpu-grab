@@ -90,14 +90,19 @@ class GPUMonitor:
         return [self.get_gpu_status(i) for i in range(count)]
 
     def check_requirements(
-        self, requirements: GPURequirement
+        self, requirements: GPURequirement, excluded_gpus: Optional[set[int]] = None
     ) -> Optional[list[int]]:
         """
         Check if there are GPUs meeting the requirements.
 
+        Args:
+            requirements: GPU resource requirements.
+            excluded_gpus: Set of GPU indices to exclude (already assigned to other tasks).
+
         Returns:
             List of available GPU IDs if requirements are met, None otherwise.
         """
+        excluded_gpus = excluded_gpus or set()
         try:
             all_gpus = self.get_all_gpu_status()
         except NVMLError:
@@ -106,6 +111,11 @@ class GPUMonitor:
         candidates: list[int] = []
 
         for gpu in all_gpus:
+            # Skip GPUs already assigned to running tasks
+            if gpu.index in excluded_gpus:
+                logger.debug(f"GPU {gpu.index}: excluded (assigned to another task)")
+                continue
+
             # If specific GPU IDs are requested, only consider those
             if requirements.gpu_ids and gpu.index not in requirements.gpu_ids:
                 continue

@@ -33,26 +33,26 @@ class TaskRunner:
             log_file = self.logs_dir / f"task_{task.id}.log"
             task.log_file = str(log_file)
 
-            # Start the process
+            # Write header to log first
             with open(log_file, "w") as log_f:
-                # Write header to log
                 log_f.write(f"=== Task: {task.name or task.id} ===\n")
                 log_f.write(f"Command: {task.command}\n")
                 log_f.write(f"Working dir: {task.working_dir or os.getcwd()}\n")
                 log_f.write(f"GPUs: {gpu_ids}\n")
                 log_f.write(f"Started: {datetime.now().isoformat()}\n")
                 log_f.write("=" * 50 + "\n\n")
-                log_f.flush()
 
-                process = subprocess.Popen(
-                    task.command,
-                    shell=True,
-                    cwd=task.working_dir or None,
-                    env=env,
-                    stdout=log_f,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,  # Create new session to avoid signal propagation
-                )
+            # Open log file in append mode and keep it open for the process
+            log_handle = open(log_file, "a")
+            process = subprocess.Popen(
+                task.command,
+                shell=True,
+                cwd=task.working_dir or None,
+                env=env,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
 
             task.pid = process.pid
             task.assigned_gpus = gpu_ids
@@ -60,6 +60,11 @@ class TaskRunner:
             task.started_at = datetime.now()
 
             self.running_processes[task.id] = process
+            # Store log handle to close later
+            if not hasattr(self, "_log_handles"):
+                self._log_handles = {}
+            self._log_handles[task.id] = log_handle
+
             logger.info(
                 f"Started task {task.id} (PID: {process.pid}) on GPUs {gpu_ids}"
             )
@@ -85,6 +90,10 @@ class TaskRunner:
 
             if exit_code is not None:
                 del self.running_processes[task.id]
+                # Close log handle if exists
+                if hasattr(self, "_log_handles") and task.id in self._log_handles:
+                    self._log_handles[task.id].close()
+                    del self._log_handles[task.id]
                 logger.debug(f"Task {task.id} exited with code {exit_code}")
 
             return exit_code

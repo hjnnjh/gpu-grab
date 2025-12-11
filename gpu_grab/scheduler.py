@@ -95,6 +95,13 @@ class Scheduler:
             logger.debug("Max concurrent tasks reached, skipping scheduling")
             return
 
+        # Collect GPUs already assigned to running tasks
+        occupied_gpus: set[int] = set()
+        for task in running_tasks:
+            occupied_gpus.update(task.assigned_gpus)
+        if occupied_gpus:
+            logger.debug(f"GPUs already occupied by running tasks: {occupied_gpus}")
+
         pending_tasks = self.queue_manager.get_pending_tasks()
         if not pending_tasks:
             return
@@ -109,8 +116,10 @@ class Scheduler:
             ):
                 break
 
-            # Check if GPU resources are available
-            available_gpus = self.gpu_monitor.check_requirements(task.requirements)
+            # Check if GPU resources are available, excluding already occupied GPUs
+            available_gpus = self.gpu_monitor.check_requirements(
+                task.requirements, excluded_gpus=occupied_gpus
+            )
 
             if available_gpus:
                 logger.info(
@@ -119,6 +128,8 @@ class Scheduler:
 
                 if self.task_runner.start_task(task, available_gpus):
                     self.queue_manager.update_task(task)
+                    # Add newly assigned GPUs to occupied set for this tick
+                    occupied_gpus.update(available_gpus)
                 else:
                     self.queue_manager.update_task(task)
                     logger.error(f"Failed to start task {task.id}")
