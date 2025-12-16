@@ -109,12 +109,17 @@ def main() -> None:
         logs = scheduler.task_runner.get_log_content(task, tail, follow)
         return {"logs": logs}
 
+    def handle_clean(status_filter: str = "all") -> dict[str, Any]:
+        removed = scheduler.queue_manager.clear_finished_tasks(status_filter)
+        return {"removed": removed}
+
     handlers = {
         "submit": handle_submit,
         "status": handle_status,
         "list": handle_list,
         "cancel": handle_cancel,
         "logs": handle_logs,
+        "clean": handle_clean,
     }
 
     server = UnixSocketServer(config.socket_path, handlers)

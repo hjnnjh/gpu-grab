@@ -2,7 +2,7 @@
 
 # Scheduling
 check_interval: 10.0          # GPU check interval (seconds)
-max_concurrent_tasks: 4       # Max concurrent tasks
+max_concurrent_tasks: 2       # Max concurrent tasks
 
 # Logging
 log_level: INFO               # DEBUG, INFO, WARNING, ERROR

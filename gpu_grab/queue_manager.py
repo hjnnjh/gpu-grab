@@ -153,3 +153,24 @@ class QueueManager:
             logger.info(f"Cleaned up {removed} old tasks")
 
         return removed
+
+    def clear_finished_tasks(self, status_filter: str = "all") -> int:
+        """Remove finished tasks (completed/failed/cancelled).
+
+        Args:
+            status_filter: Filter by status - "all", "completed", "failed", "cancelled"
+
+        Returns:
+            Number of tasks removed.
+        """
+        tasks = self._load_tasks()
+        terminal_states = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}
+        if status_filter != "all":
+            terminal_states = {TaskStatus(status_filter)}
+        original_len = len(tasks)
+        tasks = [t for t in tasks if t.status not in terminal_states]
+        removed = original_len - len(tasks)
+        if removed > 0:
+            self._save_tasks(tasks)
+            logger.info(f"Cleared {removed} finished tasks")
+        return removed

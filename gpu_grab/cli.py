@@ -157,6 +157,18 @@ def cmd_logs(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_clean(args: argparse.Namespace) -> None:
+    """Clean finished tasks."""
+    params = {"status_filter": args.status}
+    result = send_request(DEFAULT_SOCKET_PATH, "clean", params)
+    if result.get("success"):
+        removed = result["data"]["removed"]
+        print(f"Removed {removed} task(s).")
+    else:
+        print(f"Error: {result.get('error')}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -217,6 +229,17 @@ def main() -> None:
         "-f", "--follow", action="store_true", help="Follow log output (TODO)"
     )
     p_logs.set_defaults(func=cmd_logs)
+
+    # clean
+    p_clean = subparsers.add_parser("clean", help="Remove finished tasks from list")
+    p_clean.add_argument(
+        "-s",
+        "--status",
+        choices=["all", "completed", "failed", "cancelled"],
+        default="all",
+        help="Filter by status (default: all finished tasks)",
+    )
+    p_clean.set_defaults(func=cmd_clean)
 
     args = parser.parse_args()
     args.func(args)

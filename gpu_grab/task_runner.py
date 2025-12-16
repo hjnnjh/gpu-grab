@@ -2,6 +2,7 @@
 
 import logging
 import os
+import shlex
 import signal
 import subprocess
 from datetime import datetime
@@ -44,9 +45,10 @@ class TaskRunner:
 
             # Open log file in append mode and keep it open for the process
             log_handle = open(log_file, "a")
+            cmd_list = shlex.split(task.command)
             process = subprocess.Popen(
-                task.command,
-                shell=True,
+                cmd_list,
+                shell=False,
                 cwd=task.working_dir or None,
                 env=env,
                 stdout=log_handle,
