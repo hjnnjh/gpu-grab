@@ -10,6 +10,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
+| 2025-12-17 01:27 | v1.1.0 | 更新：新增 `__main__.py` 服务入口、`clean` 命令、行数更新 |
 | 2025-12-09 17:27 | v1.0.0 | 初始化模块文档 |
 
 ---
@@ -30,6 +31,7 @@
 
 | 入口点 | 路径 | 说明 |
 |--------|------|------|
+| 服务入口 | `__main__.py:main()` | 服务端主函数，可通过 `python -m gpu_grab` 启动 |
 | CLI 入口 | `cli.py:main()` | 命令行工具主函数 |
 | 包入口 | `__init__.py` | 版本定义 `__version__ = "0.1.0"` |
 
@@ -37,6 +39,14 @@
 ```toml
 [project.scripts]
 gpu-grab = "gpu_grab.cli:main"
+```
+
+**启动服务端**:
+```bash
+# 直接运行包
+python -m gpu_grab
+
+# 服务会监听 Unix Socket 并开始调度循环
 ```
 
 ---
@@ -52,6 +62,7 @@ gpu-grab = "gpu_grab.cli:main"
 | `list` | `cmd_list()` | 任务列表 |
 | `cancel` | `cmd_cancel()` | 取消任务 |
 | `logs` | `cmd_logs()` | 查看日志 |
+| `clean` | `cmd_clean()` | 清理已完成任务 |
 
 ### Socket 协议
 
@@ -59,7 +70,7 @@ gpu-grab = "gpu_grab.cli:main"
 
 ```json
 {
-  "action": "submit|status|list|cancel|logs",
+  "action": "submit|status|list|cancel|logs|clean",
   "params": { ... }
 }
 ```
@@ -72,6 +83,17 @@ gpu-grab = "gpu_grab.cli:main"
   "error": "错误信息"
 }
 ```
+
+### 服务端请求处理器 (`__main__.py`)
+
+| Action | 处理函数 | 参数 |
+|--------|----------|------|
+| `submit` | `handle_submit()` | command, name, working_dir, gpu_ids, gpu_count, ... |
+| `status` | `handle_status()` | - |
+| `list` | `handle_list()` | status_filter |
+| `cancel` | `handle_cancel()` | task_id |
+| `logs` | `handle_logs()` | task_id, tail, follow |
+| `clean` | `handle_clean()` | status_filter |
 
 ---
 
@@ -87,14 +109,17 @@ gpu-grab = "gpu_grab.cli:main"
 ### 内部依赖关系
 
 ```
-cli.py
-  └── server.py (UnixSocketServer)
-        └── scheduler.py (Scheduler)
-              ├── gpu_monitor.py (GPUMonitor)
-              ├── queue_manager.py (QueueManager)
-              └── task_runner.py (TaskRunner)
-                    └── models.py (Task, GPUStatus, ...)
-                          └── config.py (Config)
+__main__.py (服务入口)
+  ├── scheduler.py (Scheduler)
+  │     ├── gpu_monitor.py (GPUMonitor)
+  │     ├── queue_manager.py (QueueManager)
+  │     └── task_runner.py (TaskRunner)
+  ├── server.py (UnixSocketServer)
+  ├── config.py (Config)
+  └── models.py (Task, GPURequirement, ...)
+
+cli.py (CLI 客户端)
+  └── 通过 Socket 连接 server.py
 ```
 
 ### 配置路径
@@ -104,6 +129,7 @@ cli.py
 | `~/.gpu-grab/config.yaml` | 系统配置 |
 | `~/.gpu-grab/data/tasks.json` | 任务队列持久化 |
 | `~/.gpu-grab/logs/task_*.log` | 任务输出日志 |
+| `~/.gpu-grab/logs/gpu-grab.log` | 服务日志（RotatingFileHandler） |
 | `~/.gpu-grab/gpu-grab.sock` | Unix Socket |
 
 ---
@@ -126,6 +152,8 @@ cli.py
 | `check_interval` | float | 10.0 | GPU 检查间隔（秒） |
 | `max_concurrent_tasks` | int | 4 | 最大并发任务数 |
 | `log_level` | str | "INFO" | 日志级别 |
+| `log_max_size_mb` | int | 10 | 日志文件最大大小 |
+| `log_backup_count` | int | 5 | 日志备份数量 |
 | `default_gpu_count` | int | 1 | 默认 GPU 数量 |
 | `default_min_memory_gb` | float | 0.0 | 默认最小显存 |
 
@@ -141,10 +169,11 @@ cli.py
 
 | 模块 | 测试点 |
 |------|--------|
-| `queue_manager.py` | 任务 CRUD、优先级排序、文件锁 |
-| `gpu_monitor.py` | 资源需求匹配逻辑 |
-| `scheduler.py` | 调度决策、并发限制 |
+| `queue_manager.py` | 任务 CRUD、优先级排序、文件锁、`clear_finished_tasks()` |
+| `gpu_monitor.py` | 资源需求匹配逻辑、GPU 排除集合 |
+| `scheduler.py` | 调度决策、并发限制、GPU 占用追踪 |
 | `task_runner.py` | 进程启动/终止、日志写入 |
+| `__main__.py` | 请求处理器、信号处理 |
 
 ---
 
@@ -152,14 +181,12 @@ cli.py
 
 ### Q: 服务端如何启动？
 
-当前 `cli.py` 缺少 `serve` 子命令。需要直接调用：
-```python
-from gpu_grab.config import Config
-from gpu_grab.scheduler import Scheduler
+```bash
+# 推荐方式
+python -m gpu_grab
 
-config = Config.load()
-scheduler = Scheduler(config)
-scheduler.start()  # 阻塞运行
+# 或者直接调用模块
+python -c "from gpu_grab.__main__ import main; main()"
 ```
 
 ### Q: 如何指定特定 GPU？
@@ -174,7 +201,25 @@ gpu-grab submit "python train.py" --gpus 0,1
 
 ### Q: 如何清理旧任务？
 
-调用 `QueueManager.cleanup_old_tasks(max_age_days=7)`
+```bash
+# CLI 方式（需服务运行）
+gpu-grab clean                    # 清理所有已完成任务
+gpu-grab clean -s completed       # 只清理成功的
+gpu-grab clean -s failed          # 只清理失败的
+
+# 程序方式
+from gpu_grab.queue_manager import QueueManager
+qm = QueueManager(Path("~/.gpu-grab/data").expanduser())
+qm.cleanup_old_tasks(max_age_days=7)  # 清理 7 天前的旧任务
+```
+
+### Q: 如何优雅停止服务？
+
+发送 SIGTERM 或 SIGINT 信号：
+```bash
+kill -TERM <pid>
+# 或 Ctrl+C
+```
 
 ---
 
@@ -183,15 +228,18 @@ gpu-grab submit "python train.py" --gpus 0,1
 | 文件 | 行数 | 职责 |
 |------|------|------|
 | `__init__.py` | 3 | 版本定义 |
+| `__main__.py` | 153 | 服务入口、请求处理 |
 | `config.py` | 84 | 配置管理 |
 | `models.py` | 158 | 数据模型 |
-| `gpu_monitor.py` | 141 | GPU 监控 |
-| `queue_manager.py` | 156 | 队列管理 |
-| `task_runner.py` | 157 | 任务执行 |
-| `scheduler.py` | 153 | 调度器 |
+| `gpu_monitor.py` | 151 | GPU 监控 |
+| `queue_manager.py` | 177 | 队列管理 |
+| `task_runner.py` | 168 | 任务执行 |
+| `scheduler.py` | 164 | 调度器 |
 | `server.py` | 127 | Socket 服务 |
-| `cli.py` | 223 | CLI |
+| `cli.py` | 246 | CLI |
+
+**总计**: 约 1,431 行代码
 
 ---
 
-_此文档由 Claude 自动生成，最后更新：2025-12-09T17:27:32+0800_
+_此文档由 Claude 自动生成，最后更新：2025-12-17T01:27:44+0800_

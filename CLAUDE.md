@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
+| 2025-12-17 01:27 | v1.1.0 | 增量扫描：发现 `__main__.py` 服务入口、`clean` 命令、新增工具脚本 |
 | 2025-12-09 17:27 | v1.0.0 | 完整扫描：识别 Python GPU 任务调度器架构，8 个核心模块，完整 CLI 接口 |
 | 2025-12-09 16:43 | v0.0.1 | 增量扫描确认：项目仍为空仓库，等待源代码添加 |
 | 2025-12-09 16:41 | v0.0.0 | 初始化项目 AI 上下文文档（空仓库模板） |
@@ -32,9 +33,13 @@
 .gpu-grab/
   pyproject.toml         # 项目配置与依赖
   main.py                # 简单入口（开发用）
+  test_task.py           # 测试任务脚本
+  check_env.py           # 环境检查脚本
   .python-version        # Python 3.13
+  .gitignore             # Git 忽略规则
   gpu_grab/              # 核心包
     __init__.py          # 版本定义
+    __main__.py          # 服务端入口 (python -m gpu_grab)
     config.py            # 配置管理
     models.py            # 数据模型（Task, GPUStatus, GPURequirement）
     gpu_monitor.py       # GPU 监控（NVML 接口）
@@ -46,7 +51,7 @@
 ```
 
 **技术栈**:
-- **语言**: Python 3.13+
+- **语言**: Python 3.13+（兼容 3.10+）
 - **GPU 接口**: pynvml (NVIDIA Management Library)
 - **配置格式**: YAML
 - **通信协议**: Unix Socket + JSON
@@ -63,6 +68,7 @@
 ```mermaid
 graph TD
     A["(根) gpu-grab"] --> B["gpu_grab/"]
+    B --> K["__main__.py<br/>服务入口"]
     B --> C["config.py<br/>配置管理"]
     B --> D["models.py<br/>数据模型"]
     B --> E["gpu_monitor.py<br/>GPU 监控"]
@@ -72,16 +78,19 @@ graph TD
     B --> I["server.py<br/>Socket 服务"]
     B --> J["cli.py<br/>命令行"]
 
+    K --> H
+    K --> I
     H --> E
     H --> F
     H --> G
     I --> H
-    J --> I
+    J -.->|Socket| I
     G --> D
     F --> D
     E --> D
 
     style A fill:#e1f5fe
+    style K fill:#ffccbc
     style H fill:#c8e6c9
     style J fill:#fff9c4
 ```
@@ -92,6 +101,7 @@ graph TD
 
 | 模块路径 | 职责 | 核心类/函数 | 依赖 |
 |----------|------|-------------|------|
+| `gpu_grab/__main__.py` | 服务端入口，请求处理 | `main()`, `setup_logging()` | config, scheduler, server, models |
 | `gpu_grab/config.py` | 系统配置管理，YAML 加载/保存 | `Config` | pyyaml |
 | `gpu_grab/models.py` | 数据模型定义 | `Task`, `TaskStatus`, `GPUStatus`, `GPURequirement` | - |
 | `gpu_grab/gpu_monitor.py` | GPU 状态监控 | `GPUMonitor` | pynvml |
@@ -118,11 +128,15 @@ graph TD
 cd ~/.gpu-grab
 pip install -e .
 
-# 运行 CLI（需要先启动服务端）
+# 启动服务端（新增！）
+python -m gpu_grab
+
+# 或者在另一个终端运行 CLI
 gpu-grab status
 gpu-grab submit "python train.py" --name my-training --gpu-count 2
 gpu-grab list
 gpu-grab logs <task_id>
+gpu-grab clean  # 清理已完成任务
 ```
 
 ### 常用命令
@@ -132,8 +146,9 @@ gpu-grab logs <task_id>
 | `gpu-grab submit <cmd>` | 提交训练任务 |
 | `gpu-grab status` | 查看系统状态（GPU + 队列） |
 | `gpu-grab list [-s STATUS]` | 列出任务 |
-| `gpu-grab cancel <id>` | 取消待处理任务 |
+| `gpu-grab cancel <id>` | 取消任务 |
 | `gpu-grab logs <id> [-t N]` | 查看任务日志 |
+| `gpu-grab clean [-s STATUS]` | 清理已完成任务 |
 
 ### CLI 参数详解
 
@@ -180,7 +195,8 @@ gpu-grab submit "python train.py" \
 
 ## 测试策略
 
-- 当前无测试目录
+- 当前无正式测试目录（`tests/`）
+- 存在工具脚本：`test_task.py`（简单任务模拟）、`check_env.py`（环境检查）
 - 建议添加 `tests/` 目录，使用 pytest
 - 重点测试：
   - `QueueManager` 持久化逻辑
@@ -203,10 +219,10 @@ gpu-grab submit "python train.py" \
 ### 适合 AI 协助的任务
 
 - 添加新的 CLI 子命令
-- 实现服务端守护进程启动逻辑
 - 添加任务依赖/DAG 调度
 - 实现 REST API 接口（替代/补充 Unix Socket）
 - 编写单元测试
+- 添加 systemd 服务单元文件
 
 ### 上下文提示
 
@@ -217,8 +233,8 @@ gpu-grab submit "python train.py" \
 
 ### 当前待完善功能
 
-1. **服务端启动命令** - `cli.py` 缺少 `gpu-grab serve` 子命令
-2. **日志跟踪 (follow)** - `cmd_logs` 中 TODO 标记
+1. **CLI serve 子命令** - 可添加 `gpu-grab serve` 包装 `__main__.py`
+2. **日志跟踪 (follow)** - `cmd_logs` 中 `-f` 参数标记为 TODO
 3. **配置文件管理** - 缺少 `gpu-grab config` 命令
 4. **任务依赖** - 当前无任务间依赖支持
 
@@ -228,29 +244,30 @@ gpu-grab submit "python train.py" \
 
 | 指标 | 数值 |
 |------|------|
-| 估算总文件数 | 11（不含 .git/.venv/文档） |
-| 已扫描文件数 | 11 |
+| 估算总文件数 | 15（不含 .git/.venv/文档） |
+| 已扫描文件数 | 15 |
 | 覆盖率 | 100% |
 | 识别模块数 | 1（gpu_grab 包） |
-| 核心源文件 | 9 |
+| 核心源文件 | 10 |
 
 ### 文件清单
 
 | 类别 | 文件 |
 |------|------|
-| 配置 | `pyproject.toml`, `.python-version` |
-| 入口 | `main.py`, `gpu_grab/cli.py` |
+| 配置 | `pyproject.toml`, `.python-version`, `.gitignore` |
+| 入口 | `main.py`, `gpu_grab/__main__.py`, `gpu_grab/cli.py` |
 | 核心 | `config.py`, `models.py`, `gpu_monitor.py`, `queue_manager.py`, `task_runner.py`, `scheduler.py`, `server.py` |
+| 工具 | `test_task.py`, `check_env.py` |
 
 ---
 
 ## 建议下一步
 
-1. **补充服务端入口** - 在 `cli.py` 添加 `serve` 子命令
+1. **添加 CLI serve 命令** - 在 `cli.py` 添加 `serve` 子命令调用 `__main__.main()`
 2. **添加测试** - 创建 `tests/` 目录，覆盖核心逻辑
-3. **日志轮转** - 当前配置存在但未实现
-4. **系统服务** - 考虑添加 systemd 单元文件
+3. **系统服务** - 添加 systemd 单元文件实现开机启动
+4. **实现日志 follow** - 完成 `cmd_logs` 的 `-f` 参数功能
 
 ---
 
-_此文档由 Claude 自动生成，最后更新：2025-12-09T17:27:32+0800_
+_此文档由 Claude 自动生成，最后更新：2025-12-17T01:27:44+0800_
