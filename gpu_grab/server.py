@@ -47,9 +47,7 @@ class UnixSocketServer:
         while self._running:
             try:
                 conn, _ = self._socket.accept()
-                thread = threading.Thread(
-                    target=self._handle_connection, args=(conn,)
-                )
+                thread = threading.Thread(target=self._handle_connection, args=(conn,))
                 thread.daemon = True
                 thread.start()
             except socket.timeout:
@@ -97,9 +95,7 @@ class UnixSocketServer:
             logger.error(f"Connection handling error: {e}")
             try:
                 conn.sendall(
-                    json.dumps({"success": False, "error": str(e)}).encode(
-                        "utf-8"
-                    )
+                    json.dumps({"success": False, "error": str(e)}).encode("utf-8")
                     + b"\n"
                 )
             except Exception:

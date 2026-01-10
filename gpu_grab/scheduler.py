@@ -81,9 +81,7 @@ class Scheduler:
                 else:
                     task.status = TaskStatus.FAILED
                     task.error_message = f"Process exited with code {exit_code}"
-                    logger.warning(
-                        f"Task {task.id} failed: {task.error_message}"
-                    )
+                    logger.warning(f"Task {task.id} failed: {task.error_message}")
 
                 self.queue_manager.update_task(task)
 
@@ -161,3 +159,17 @@ class Scheduler:
                 "max_concurrent_tasks": self.config.max_concurrent_tasks,
             },
         }
+
+    def reload_config(self) -> dict[str, dict[str, object]]:
+        """Reload configuration without interrupting running tasks.
+
+        Returns:
+            Dict of changed values from config.reload()
+        """
+        with self._lock:
+            changes = self.config.reload()
+            if changes:
+                logger.info(f"Configuration reloaded: {changes}")
+            else:
+                logger.info("Configuration reloaded, no changes detected")
+            return changes

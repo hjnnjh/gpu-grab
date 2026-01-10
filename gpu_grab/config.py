@@ -6,6 +6,16 @@ from typing import Optional
 
 import yaml
 
+# Keys that can be reloaded without restarting the service
+RELOADABLE_KEYS = [
+    "check_interval",
+    "max_concurrent_tasks",
+    "log_level",
+    "default_gpu_count",
+    "default_min_memory_gb",
+    "default_max_util_percent",
+]
+
 
 @dataclass
 class Config:
@@ -81,3 +91,31 @@ class Config:
 
         with open(config_file, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
+
+    def reload(
+        self, config_file: Optional[Path] = None
+    ) -> dict[str, dict[str, object]]:
+        """Reload configuration from file.
+
+        Only reloads keys defined in RELOADABLE_KEYS.
+
+        Returns:
+            Dict of changed values: {key: {"old": old_value, "new": new_value}}
+        """
+        if config_file is None:
+            config_file = self.base_dir / "config.yaml"
+
+        changes: dict[str, dict[str, object]] = {}
+        if config_file.exists():
+            with open(config_file) as f:
+                data = yaml.safe_load(f) or {}
+
+            for key in RELOADABLE_KEYS:
+                if key in data:
+                    old_value = getattr(self, key)
+                    new_value = data[key]
+                    if old_value != new_value:
+                        setattr(self, key, new_value)
+                        changes[key] = {"old": old_value, "new": new_value}
+
+        return changes

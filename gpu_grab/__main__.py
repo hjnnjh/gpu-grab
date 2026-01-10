@@ -30,9 +30,7 @@ def setup_logging(config: Config) -> None:
         backupCount=config.log_backup_count,
     )
     handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
 
     root_logger = logging.getLogger()
@@ -82,9 +80,7 @@ def main() -> None:
         tasks = scheduler.queue_manager.get_all_tasks()
         if status_filter != "all":
             tasks = [t for t in tasks if t.status.value == status_filter]
-        return {
-            "tasks": [t.to_dict() for t in tasks]
-        }
+        return {"tasks": [t.to_dict() for t in tasks]}
 
     def handle_cancel(task_id: str) -> dict[str, Any]:
         task = scheduler.queue_manager.get_task(task_id)
@@ -113,6 +109,10 @@ def main() -> None:
         removed = scheduler.queue_manager.clear_finished_tasks(status_filter)
         return {"removed": removed}
 
+    def handle_reload() -> dict[str, Any]:
+        changes = scheduler.reload_config()
+        return {"reloaded": True, "changes": changes}
+
     handlers = {
         "submit": handle_submit,
         "status": handle_status,
@@ -120,6 +120,7 @@ def main() -> None:
         "cancel": handle_cancel,
         "logs": handle_logs,
         "clean": handle_clean,
+        "reload": handle_reload,
     }
 
     server = UnixSocketServer(config.socket_path, handlers)
@@ -130,8 +131,16 @@ def main() -> None:
         server.stop()
         scheduler.stop()
 
+    def sighup_handler(signum: int, frame: Any) -> None:
+        logger.info("Received SIGHUP, reloading configuration...")
+        changes = scheduler.reload_config()
+        if changes:
+            for key, vals in changes.items():
+                logger.info(f"  {key}: {vals['old']} -> {vals['new']}")
+
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGHUP, sighup_handler)
 
     # Start server in thread
     server_thread = threading.Thread(target=server.start)

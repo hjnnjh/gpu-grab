@@ -94,7 +94,7 @@ def cmd_status(args: argparse.Namespace) -> None:
         print(f"  Failed:    {tasks['failed']}")
         print(f"  Cancelled: {tasks['cancelled']}")
 
-        print(f"\n=== Service ===")
+        print("\n=== Service ===")
         print(f"  Status: {'Running' if data['running'] else 'Stopped'}")
         print(f"  Uptime: {data['uptime_seconds']:.0f}s")
         if "config" in data:
@@ -116,9 +116,7 @@ def cmd_list(args: argparse.Namespace) -> None:
             return
 
         # Header
-        print(
-            f"{'ID':<10} {'Name':<20} {'Status':<12} {'GPUs':<10} {'Created':<20}"
-        )
+        print(f"{'ID':<10} {'Name':<20} {'Status':<12} {'GPUs':<10} {'Created':<20}")
         print("-" * 75)
 
         for task in tasks:
@@ -169,6 +167,22 @@ def cmd_clean(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_reload(args: argparse.Namespace) -> None:
+    """Reload service configuration."""
+    result = send_request(DEFAULT_SOCKET_PATH, "reload")
+    if result.get("success"):
+        data = result["data"]
+        if data["changes"]:
+            print("Configuration reloaded:")
+            for key, vals in data["changes"].items():
+                print(f"  {key}: {vals['old']} -> {vals['new']}")
+        else:
+            print("Configuration reloaded, no changes detected.")
+    else:
+        print(f"Error: {result.get('error')}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -191,9 +205,7 @@ def main() -> None:
     p_submit.add_argument(
         "-u", "--util-margin", type=float, default=0, help="Required idle margin (%)"
     )
-    p_submit.add_argument(
-        "-p", "--priority", type=int, default=0, help="Task priority"
-    )
+    p_submit.add_argument("-p", "--priority", type=int, default=0, help="Task priority")
     p_submit.add_argument(
         "-e", "--env", nargs="*", help="Environment variables (KEY=VALUE)"
     )
@@ -240,6 +252,10 @@ def main() -> None:
         help="Filter by status (default: all finished tasks)",
     )
     p_clean.set_defaults(func=cmd_clean)
+
+    # reload
+    p_reload = subparsers.add_parser("reload", help="Reload service configuration")
+    p_reload.set_defaults(func=cmd_reload)
 
     args = parser.parse_args()
     args.func(args)

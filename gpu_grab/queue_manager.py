@@ -3,6 +3,7 @@
 import fcntl
 import json
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -110,8 +111,6 @@ class QueueManager:
         """Cancel a pending task."""
         task = self.get_task(task_id)
         if task and task.status == TaskStatus.PENDING:
-            from datetime import datetime
-
             task.status = TaskStatus.CANCELLED
             task.finished_at = datetime.now()
             self.update_task(task)
@@ -133,11 +132,13 @@ class QueueManager:
 
     def cleanup_old_tasks(self, max_age_days: int = 7) -> int:
         """Remove completed/failed/cancelled tasks older than max_age_days."""
-        from datetime import datetime, timedelta
-
         tasks = self._load_tasks()
         cutoff = datetime.now() - timedelta(days=max_age_days)
-        terminal_states = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}
+        terminal_states = {
+            TaskStatus.COMPLETED,
+            TaskStatus.FAILED,
+            TaskStatus.CANCELLED,
+        }
 
         original_len = len(tasks)
         tasks = [
@@ -164,7 +165,11 @@ class QueueManager:
             Number of tasks removed.
         """
         tasks = self._load_tasks()
-        terminal_states = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}
+        terminal_states = {
+            TaskStatus.COMPLETED,
+            TaskStatus.FAILED,
+            TaskStatus.CANCELLED,
+        }
         if status_filter != "all":
             terminal_states = {TaskStatus(status_filter)}
         original_len = len(tasks)

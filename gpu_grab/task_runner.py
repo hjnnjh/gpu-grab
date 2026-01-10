@@ -136,9 +136,7 @@ class TaskRunner:
 
         return False
 
-    def get_log_content(
-        self, task: Task, tail: int = 100, follow: bool = False
-    ) -> str:
+    def get_log_content(self, task: Task, tail: int = 100, follow: bool = False) -> str:
         """Get task log content."""
         if not task.log_file:
             return "No log file available"
