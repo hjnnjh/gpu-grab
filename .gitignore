@@ -6,6 +6,10 @@ gpu-grab.sock
 # Claude Code
 .claude/hooks/
 
+# Dev tools config (local)
+pyrightconfig.json
+ruff.toml
+
 # Python
 __pycache__/
 *.pyc
