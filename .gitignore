@@ -3,6 +3,9 @@ data/
 logs/
 gpu-grab.sock
 
+# Claude Code
+.claude/hooks/
+
 # Python
 __pycache__/
 *.pyc
