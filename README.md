@@ -16,6 +16,7 @@
 - **💻 CLI 工具**: 方便的命令行界面，用于提交、管理和查看任务。
 - **🔌 Socket 通信**: 使用 Unix Socket 进行高效的进程间通信。
 - **⚙️ Systemd 集成**: 作为用户级服务后台运行，开机自启。
+- **🔥 热重载配置**: 无需重启服务即可更新配置参数。
 
 ## 🛠️ 安装
 
@@ -155,6 +156,8 @@ gpu-grab cancel <task_id>
 | `list` | 列出任务 | `gpu-grab list -s running` |
 | `cancel` | 取消任务 | `gpu-grab cancel ab12c` |
 | `logs` | 查看任务日志 | `gpu-grab logs ab12c -t 50` |
+| `clean` | 清理已完成任务 | `gpu-grab clean` |
+| `reload` | 热重载配置 | `gpu-grab reload` |
 
 ### 提交参数 (`submit`)
 
@@ -177,6 +180,29 @@ max_concurrent_tasks: 4       # 最大并发任务数
 log_level: INFO
 default_gpu_count: 1
 ```
+
+### 热重载配置
+
+修改 `config.yaml` 后，无需重启服务即可应用配置变更：
+
+```bash
+# 方式一：使用 CLI 命令
+gpu-grab reload
+
+# 方式二：发送 SIGHUP 信号
+kill -HUP $(pgrep -f "python -m gpu_grab")
+
+# 方式三：使用 systemctl
+systemctl --user reload gpu-grab
+```
+
+**可热重载的配置项**：
+- `check_interval` - 调度检查间隔
+- `max_concurrent_tasks` - 最大并发任务数
+- `log_level` - 日志级别
+- `default_gpu_count` - 默认 GPU 数量
+- `default_min_memory_gb` - 默认最小显存需求
+- `default_max_util_percent` - 默认最大利用率阈值
 
 ## 🤝 贡献
 

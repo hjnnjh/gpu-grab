@@ -1,9 +1,9 @@
 {
   "meta": {
-    "generated_at": "2025-12-09T17:27:32+08:00",
+    "generated_at": "2026-01-10T17:00:31+0800",
     "generator": "claude-architect-adaptive",
-    "version": "1.1.0",
-    "scan_type": "full"
+    "version": "1.2.0",
+    "scan_type": "incremental"
   },
   "project": {
     "name": "gpu-grab",
@@ -15,8 +15,8 @@
   "scan_result": {
     "status": "completed",
     "truncated": false,
-    "total_files_estimated": 11,
-    "files_scanned": 11,
+    "total_files_estimated": 16,
+    "files_scanned": 16,
     "coverage_percentage": 100,
     "scan_phases": {
       "phase_a": "completed",
@@ -38,10 +38,10 @@
       "*.so"
     ],
     "ignored_stats": {
-      "total_ignored_files": 85,
+      "total_ignored_files": 90,
       "reasons": [
-        { "pattern": ".git/**", "count": 23 },
-        { "pattern": ".venv/**", "count": 62 }
+        { "pattern": ".git/**", "count": 25 },
+        { "pattern": ".venv/**", "count": 65 }
       ]
     }
   },
@@ -50,10 +50,11 @@
       "name": "gpu_grab",
       "path": "gpu_grab",
       "language": "Python",
-      "entry_points": ["cli.py:main"],
+      "entry_points": ["cli.py:main", "__main__.py:main"],
       "interfaces": {
-        "cli_commands": ["submit", "status", "list", "cancel", "logs"],
-        "socket_actions": ["submit", "status", "list", "cancel", "logs"]
+        "cli_commands": ["submit", "status", "list", "cancel", "logs", "clean", "reload"],
+        "socket_actions": ["submit", "status", "list", "cancel", "logs", "clean", "reload"],
+        "signals": ["SIGTERM", "SIGINT", "SIGHUP"]
       },
       "dependencies": {
         "external": ["pynvml", "pyyaml"],
@@ -63,6 +64,7 @@
       "data_models": ["Task", "TaskStatus", "GPUStatus", "GPURequirement", "Config"],
       "key_files": [
         "gpu_grab/__init__.py",
+        "gpu_grab/__main__.py",
         "gpu_grab/config.py",
         "gpu_grab/models.py",
         "gpu_grab/gpu_monitor.py",
@@ -72,9 +74,30 @@
         "gpu_grab/server.py",
         "gpu_grab/cli.py"
       ],
+      "features": {
+        "hot_reload": {
+          "added_in": "v1.2.0",
+          "components": [
+            "config.py:RELOADABLE_KEYS",
+            "config.py:Config.reload()",
+            "scheduler.py:Scheduler.reload_config()",
+            "__main__.py:handle_reload()",
+            "__main__.py:sighup_handler()",
+            "cli.py:cmd_reload()"
+          ],
+          "reloadable_keys": [
+            "check_interval",
+            "max_concurrent_tasks",
+            "log_level",
+            "default_gpu_count",
+            "default_min_memory_gb",
+            "default_max_util_percent"
+          ]
+        }
+      },
       "claude_md": {
         "path": "gpu_grab/CLAUDE.md",
-        "status": "created"
+        "status": "updated"
       }
     }
   ],
@@ -85,11 +108,15 @@
     ],
     "configuration": [
       "pyproject.toml",
-      ".python-version"
+      "config.yaml",
+      "ruff.toml",
+      ".python-version",
+      ".gitignore"
     ],
     "source_code": [
       "main.py",
       "gpu_grab/__init__.py",
+      "gpu_grab/__main__.py",
       "gpu_grab/config.py",
       "gpu_grab/models.py",
       "gpu_grab/gpu_monitor.py",
@@ -100,11 +127,16 @@
       "gpu_grab/cli.py"
     ],
     "tests": [],
-    "build_scripts": []
+    "build_scripts": [],
+    "utilities": [
+      "test_task.py",
+      "check_env.py"
+    ]
   },
   "language_distribution": {
     "Python": {
-      "files": 10,
+      "files": 13,
+      "lines": 1506,
       "percentage": 100
     }
   },
@@ -119,39 +151,44 @@
       {
         "type": "missing_tests",
         "severity": "medium",
-        "description": "无测试目录，建议添加 tests/ 覆盖核心逻辑"
+        "description": "无测试目录，建议添加 tests/ 覆盖核心逻辑，特别是热重载功能"
       },
       {
         "type": "missing_cli_command",
-        "severity": "high",
+        "severity": "low",
         "description": "缺少 serve 子命令用于启动调度服务"
       },
       {
         "type": "incomplete_feature",
         "severity": "low",
         "description": "logs --follow 功能标记为 TODO"
+      },
+      {
+        "type": "incomplete_feature",
+        "severity": "low",
+        "description": "热重载 log_level 后未动态更新 root logger"
       }
     ],
     "priority_paths_to_scan": []
   },
   "next_steps": [
     "添加 'gpu-grab serve' 命令启动后台调度服务",
-    "创建 tests/ 目录并添加 pytest 测试",
+    "创建 tests/ 目录并添加 pytest 测试（重点覆盖热重载功能）",
     "实现 logs --follow 实时日志跟踪",
     "添加 systemd 单元文件支持系统服务",
-    "考虑添加 REST API 作为 Socket 的补充"
+    "热重载 log_level 后动态更新 root logger 级别"
   ],
   "documents": {
     "root_claude_md": {
       "path": "CLAUDE.md",
       "status": "updated",
-      "last_updated": "2025-12-09T17:27:32+08:00"
+      "last_updated": "2026-01-10T17:00:31+0800"
     },
     "module_claude_mds": [
       {
         "path": "gpu_grab/CLAUDE.md",
-        "status": "created",
-        "last_updated": "2025-12-09T17:27:32+08:00"
+        "status": "updated",
+        "last_updated": "2026-01-10T17:00:31+0800"
       }
     ]
   },
@@ -173,6 +210,28 @@
       "files_scanned": 11,
       "modules_identified": 1,
       "coverage": "100%"
+    },
+    {
+      "timestamp": "2025-12-17T01:27:44+08:00",
+      "action": "incremental_scan",
+      "result": "completed",
+      "changes": ["__main__.py 服务入口", "clean 命令", "工具脚本"],
+      "version": "v1.1.0"
+    },
+    {
+      "timestamp": "2026-01-10T17:00:31+08:00",
+      "action": "incremental_scan",
+      "result": "completed",
+      "changes": [
+        "config.py: 新增 RELOADABLE_KEYS 和 reload() 方法",
+        "scheduler.py: 新增 reload_config() 方法",
+        "__main__.py: 新增 SIGHUP 处理和 reload 请求处理器",
+        "cli.py: 新增 reload 子命令"
+      ],
+      "files_scanned": 16,
+      "modules_identified": 1,
+      "coverage": "100%",
+      "version": "v1.2.0"
     }
   ]
 }
